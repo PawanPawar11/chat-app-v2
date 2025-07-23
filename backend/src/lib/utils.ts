@@ -1,0 +1,25 @@
+import jwt from "jsonwebtoken";
+import { Response } from "express";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not defined within environment variables");
+}
+
+export const generateToken = (userId: string, res: Response): string => {
+  const token = jwt.sign({ userId }, JWT_SECRET, {
+    expiresIn: "7d",
+  });
+
+  res.cookie("jwt", token, {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV !== "development",
+  });
+  return token;
+};

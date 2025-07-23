@@ -1,14 +1,16 @@
-import express, { Application, Request, Response } from "express";
+import express, { Application } from "express";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.route";
+import { connectDB } from "./lib/db";
 
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
+app.use(express.json());
+connectDB();
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("The home page route is working fine if this msg is displayed! 😉");
-});
+app.use("/api/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on PORT: ${PORT}`);
