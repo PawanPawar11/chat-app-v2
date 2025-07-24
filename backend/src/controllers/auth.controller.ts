@@ -3,28 +3,36 @@ import User, { IUser } from "../models/User";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils";
 import cloudinary from "../lib/cloudinary";
+import {
+  AuthenticatedRequest,
+  SignupRequest,
+  LoginRequest,
+  UpdateProfileRequest,
+  AuthResponse,
+  ErrorResponse,
+} from "../types";
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
-  const { fullName, email, password } = req.body as {
-    fullName: string;
-    email: string;
-    password: string;
-  };
+  const { fullName, email, password } = req.body as SignupRequest;
 
   try {
     if (!fullName || !email || !password) {
-      res.status(400).json({ message: "Please fill out all the fields" });
+      res
+        .status(400)
+        .json({ message: "Please fill out all the fields" } as ErrorResponse);
       return;
     }
 
     if (password.length < 8) {
-      res.status(400).json({ message: "Password should be of length 8" });
+      res
+        .status(400)
+        .json({ message: "Password should be of length 8" } as ErrorResponse);
       return;
     }
 
     const user = await User.findOne({ email });
     if (user) {
-      res.status(400).json({ message: "User already exists" });
+      res.status(400).json({ message: "User already exists" } as ErrorResponse);
       return;
     }
 
@@ -42,63 +50,62 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       await newUser.save();
 
       res.status(201).json({
-        _id: newUser._id,
+        _id: newUser._id.toString(),
         fullName: newUser.fullName,
         email: newUser.email,
         profilePic: newUser.profilePic,
-      });
+      } as AuthResponse);
     } else {
-      res.status(400).json({ message: "Invalid user data" });
+      res.status(400).json({ message: "Invalid user data" } as ErrorResponse);
     }
   } catch (error) {
     console.log(
       "Error occurred in the signup controller",
       (error as Error).message
     );
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" } as ErrorResponse);
   }
 };
 
 export const login = async (req: Request, res: Response): Promise<void> => {
-  const { email, password } = req.body as {
-    email: string;
-    password: string;
-  };
+  const { email, password } = req.body as LoginRequest;
 
   try {
     if (!email || !password) {
-      res.status(400).json({ message: "Please fill out all details" });
+      res
+        .status(400)
+        .json({ message: "Please fill out all details" } as ErrorResponse);
       return;
     }
 
     const user = await User.findOne({ email });
 
     if (!user) {
-      res.status(400).json({ message: "User don't exist" });
+      res.status(400).json({ message: "User doesn't exist" } as ErrorResponse);
       return;
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
-      res.status(400).json({ message: "Incorrect Password" });
+      res.status(400).json({ message: "Incorrect Password" } as ErrorResponse);
       return;
     }
 
     generateToken(user._id.toString(), res);
 
     res.status(200).json({
-      _id: user._id,
+      _id: user._id.toString(),
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
-    });
+    } as AuthResponse);
   } catch (error) {
     console.log(
       "Error occurred in the login controller",
       (error as Error).message
     );
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" } as ErrorResponse);
   }
 };
 
@@ -111,36 +118,31 @@ export const logout = (req: Request, res: Response): void => {
       "Error occurred in the logout controller",
       (error as Error).message
     );
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" } as ErrorResponse);
   }
 };
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    _id: string;
-    fullName: string;
-    email: string;
-    profilePic: string;
-  };
-}
-
 export const updateProfile = async (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { profilePic } = req.body;
-    const userId = req.user?._id;
+    const authenticatedReq = req as AuthenticatedRequest;
+    const { profilePic } = req.body as UpdateProfileRequest;
+    const userId = authenticatedReq.user._id;
 
     if (!profilePic) {
-      res.status(400).json({ message: "Profile pic is required" });
+      res
+        .status(400)
+        .json({ message: "Profile pic is required" } as ErrorResponse);
       return;
     }
 
     if (!userId) {
-      res.status(401).json({ message: "Unauthorized User" });
+      res.status(401).json({ message: "Unauthorized User" } as ErrorResponse);
       return;
     }
+
     const uploadedResponse = await cloudinary.uploader.upload(profilePic);
     const updatedUser: IUser | null = await User.findByIdAndUpdate(
       userId,
@@ -151,18 +153,25 @@ export const updateProfile = async (
     res.status(200).json(updatedUser);
   } catch (error) {
     console.log("Error in update profile: ", (error as Error).message);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" } as ErrorResponse);
   }
 };
 
-export const checkAuth = (req: AuthenticatedRequest, res: Response): void => {
+export const checkAuth = (req: Request, res: Response): void => {
   try {
-    res.status(200).json(req.user);
+    const authenticatedReq = req as AuthenticatedRequest;
+
+    res.status(200).json({
+      _id: authenticatedReq.user._id.toString(),
+      fullName: authenticatedReq.user.fullName,
+      email: authenticatedReq.user.email,
+      profilePic: authenticatedReq.user.profilePic || "",
+    } as AuthResponse);
   } catch (error) {
     console.log(
       "Error occurred in the checkAuth controller: ",
       (error as Error).message
     );
-    res.status(500).send({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" } as ErrorResponse);
   }
 };
