@@ -54,6 +54,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         fullName: newUser.fullName,
         email: newUser.email,
         profilePic: newUser.profilePic,
+        createdAt: newUser.createdAt,
       } as AuthResponse);
     } else {
       res.status(400).json({ message: "Invalid user data" } as ErrorResponse);
@@ -99,6 +100,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       fullName: user.fullName,
       email: user.email,
       profilePic: user.profilePic,
+      createdAt: user.createdAt,
     } as AuthResponse);
   } catch (error) {
     console.log(
@@ -166,6 +168,7 @@ export const checkAuth = (req: Request, res: Response): void => {
       fullName: authenticatedReq.user.fullName,
       email: authenticatedReq.user.email,
       profilePic: authenticatedReq.user.profilePic || "",
+      createdAt: authenticatedReq.user.createdAt,
     } as AuthResponse);
   } catch (error) {
     console.log(

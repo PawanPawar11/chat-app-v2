@@ -7,7 +7,8 @@ interface User {
     fullName: string;
     email: string;
     profilePic?: string;
-    // add other fields as necessary based on backend User model
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface AuthStore {

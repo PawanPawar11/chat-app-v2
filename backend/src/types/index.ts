@@ -41,6 +41,7 @@ export interface AuthResponse {
   fullName: string;
   email: string;
   profilePic: string;
+  createdAt: Date;
 }
 
 export interface ErrorResponse {
